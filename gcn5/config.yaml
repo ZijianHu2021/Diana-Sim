@@ -1,0 +1,64 @@
+# GCN Training/Inference Unified Config (gcn5)
+# 统一管理数据路径、训练参数、模型配置、日志输出
+
+paths:
+  # 输出目录（模型、日志、指标等）
+  output_dir: /home/hu/saratoga/gcn5
+
+  # 数据根目录（由 gdata/graph_gen.py 生成）
+  data_root: /home/hu/saratoga/gdata
+
+
+data:
+  # 训练/推理数据来源时间戳
+  # 可选: "latest" 或具体时间戳 (如 20260204_053030)
+  timestamp: latest
+
+  # 设备类型: nmos / pmos
+  device: nmos
+
+  # gnn_data子目录名
+  gnn_data_subdir: gnn_data
+
+  # labels_metadata.json 文件名（若存在，将用于节点命名）
+  labels_metadata_file: labels_metadata.json
+
+training:
+  seed: 42
+  epochs: 200
+  batch_size: 8
+  learning_rate: 1e-3
+  weight_decay: 0.0
+  train_ratio: 0.7
+  val_ratio: 0.2
+  shuffle: true
+
+model:
+  # 与当前 gcn5d_ew 功能保持一致
+  in_channels: 3
+  hidden_channels: 128
+  out_channels: 1
+  dropout: 0.0
+  edge_weighted: true
+
+logging:
+  # 保存配置快照
+  save_config: true
+
+  # 文件命名前缀
+  training_log_prefix: training_log_
+  metrics_prefix: metrics_
+  predictions_prefix: predictions_
+  plot_prefix: training_curves_
+  inference_log_prefix: inference_log_
+
+inference:
+  # 若不指定 timestamp，则自动使用最新训练结果
+  use_latest_training: true
+
+  # 可选：手动指定模型/Scaler路径
+  model_path: null
+  scaler_path: null
+
+  # 推理结果文件后缀（可用于区分nmos/pmos）
+  suffix: ""

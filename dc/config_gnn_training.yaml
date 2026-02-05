@@ -1,0 +1,119 @@
+# DC Analysis Configuration for GNN Training Data Collection
+# 用于收集GNN训练数据，参考旧的成功配置
+# 使用方式: python debug_dc_analysis.py --config config_gnn_training.yaml
+
+# ============================================================================
+# DC Solver Configuration
+# ============================================================================
+
+solver:
+  # Minimum conductance (接地导纳最小值)
+  gmin: 1.0e-10
+  
+  # Enable bias limiting (启用偏置限制)
+  enable_bias_limiting: false
+  
+  # Enable IEQ mode (启用IEQ模式)
+  enable_ieq: false
+  
+  # Enable NL scaling (启用非线性缩放)
+  enable_nlscale: true
+  
+  # Enable KCL residual (启用KCL残差)
+  enable_kcl_residual: false
+  
+  # Enable polish (启用抛光迭代)
+  enable_polish: true
+
+# ============================================================================
+# Newton-Raphson Solver Options
+# ============================================================================
+
+newton:
+  # Convergence tolerance (收敛容差，和标准配置一致)
+  tol: 1.0e-9
+  
+  # Maximum iterations per source factor step (对齐1000次成功配置)
+  max_iter: 1000
+  
+  # Number of polish iterations (抛光迭代次数)
+  polish_iters: 0
+  
+  # Source stepping factors (对齐1000次成功配置，包含0.4)
+  source_factors:
+    - 0.01
+    - 0.05
+    - 0.1
+    - 0.2
+    - 0.3
+    - 0.4
+    - 0.5
+    - 0.7
+    - 0.85
+    - 1.0
+  
+  # NL scale factors (参考旧的成功配置，使用0.7和1.0两个)
+  # 这是关键：旧配置使用了多个NL scale，这会产生不同的求解路径
+  nlscale_factors:
+    - 0.7
+    - 1.0
+  
+  # Minimum iterations per source factor step (对齐1000次成功配置)
+  min_iter_per_step: 50
+
+  # Force full iterations even if converged early (对齐1000次成功配置)
+  force_full_iters: true
+
+# ============================================================================
+# Data Collection Options (for GNN training)
+# ============================================================================
+
+collection:
+  # Enable Newton iteration data collection (启用牛顿迭代数据收集)
+  enable_newton_collection: true
+  
+  # Enable verbose output during collection
+  verbose: true
+  
+  # Target iterations for GNN training (不限制迭代次数，让收敛准则控制)
+  target_iterations: null
+
+# ============================================================================
+# Test Configuration
+# ============================================================================
+
+test:
+  # Run PMOS test
+  run_pmos: true
+  
+  # Run NMOS test
+  run_nmos: true
+  
+  # TRAN analysis time stop (单位: seconds)
+  tran_tstop: 300.0e-9
+  
+  # TRAN analysis time step (单位: seconds)
+  tran_dt: 0.05e-9
+  
+  # Enable TRAN analysis
+  enable_tran: true
+
+# ============================================================================
+# GNN Initial Guess
+# ============================================================================
+
+gnn:
+  # Enable using GNN initial guess (默认关闭)
+  enable_initial_guess: false
+
+  # Path to GNN initial guess file 
+  # Can be:
+  #   - Absolute path: /path/to/gnn_initial_guess_20260203_051911.json
+  #   - Relative to workspace: gcn5d_ew/gnn_initial_guess_20260203_051911.json
+  #   - null to disable (使用默认初始值)
+  initial_guess_file: gcn5d_ew/gnn_initial_guess_20260203_051911.json
+  
+  # Use GNN guess to enable single-step convergence
+  # When enabled, overrides source_factors to [1.0]
+  # 提示: 当你想快速验证GNN初始值质量时，设置为 true
+  use_gnn_for_fast_convergence: false

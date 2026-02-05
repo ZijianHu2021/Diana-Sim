@@ -1,0 +1,113 @@
+# DC Analysis Configuration File
+# 用于debug_dc_analysis.py的参数配置
+# Usage: python debug_dc_analysis.py --config config.yaml
+
+# ============================================================================
+# DC Solver Configuration
+# ============================================================================
+
+# BSIM4DCAnalyzer 初始化参数
+solver:
+  # Minimum conductance (接地导纳最小值)
+  gmin: 1.0e-10
+  
+  # Enable bias limiting (启用偏置限制)
+  enable_bias_limiting: false
+  
+  # Enable IEQ mode (启用IEQ模式)
+  enable_ieq: false
+  
+  # Enable NL scaling (启用非线性缩放)
+  enable_nlscale: true
+  
+  # Enable KCL residual (启用KCL残差)
+  enable_kcl_residual: false
+  
+  # Enable polish (启用抛光迭代)
+  enable_polish: true
+
+# ============================================================================
+# Newton-Raphson Solver Options
+# ============================================================================
+
+newton:
+  # Convergence tolerance (收敛容差)
+  tol: 1.0e-9
+  
+  # Maximum iterations per source factor step (单个源因子下最大迭代次数)
+  max_iter: 100
+  
+  # Number of polish iterations (抛光迭代次数)
+  polish_iters: 0
+  
+  # Source stepping factors (源阶跃因子)
+  # For fast convergence with good initial guess: [1.0]
+  # For robust convergence: [0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 0.85, 1.0]
+  source_factors:
+    - 0.01
+    - 0.05
+    - 0.1
+    - 0.2
+    - 0.3
+    - 0.5
+    - 0.7
+    - 0.85
+    - 1.0
+  
+  # NL scale factors (非线性缩放因子)
+  nlscale_factors:
+    - 1.0
+  
+  # Minimum iterations per source factor step
+  min_iter_per_step: 1
+
+# ============================================================================
+# Data Collection Options (for GNN training)
+# ============================================================================
+
+collection:
+  # Enable Newton iteration data collection (启用牛顿迭代数据收集)
+  enable_newton_collection: true
+  
+  # Enable verbose output during collection
+  verbose: true
+  
+  # Target iterations for GNN training (目标迭代次数，用于训练数据收集)
+  # Set to large value (e.g., 1000) when collecting data for GNN training
+  target_iterations: null  # null means no limit, use convergence criterion
+
+# ============================================================================
+# Test Configuration
+# ============================================================================
+
+test:
+  # Run PMOS test
+  run_pmos: true
+  
+  # Run NMOS test
+  run_nmos: true
+  
+  # TRAN analysis time stop (单位: seconds)
+  tran_tstop: 300.0e-9
+  
+  # TRAN analysis time step (单位: seconds)
+  tran_dt: 0.05e-9
+  
+  # Enable TRAN analysis
+  enable_tran: true
+
+# ============================================================================
+# GNN Initial Guess
+# ============================================================================
+
+gnn:
+  # Enable using GNN initial guess (默认关闭)
+  enable_initial_guess: true
+
+  # Path to GNN initial guess file (相对于saratoga目录)
+  # Set to null to disable
+  initial_guess_file: /home/hu/saratoga/gcn5/logs/nmos_20260204_150830/20260204_151013/20260204_235308/gnn_initial_guess_20260204_235308.json
+  
+  # Use GNN guess to enable single-step convergence
+  # When enabled, overrides source_factors to [1.0]
+  use_gnn_for_fast_convergence: true
