@@ -15,8 +15,6 @@ saratoga/
 │   ├── config_gnn_initial.yaml          # GNN initial configuration
 │   ├── config_gnn_training.yaml         # GNN training configuration
 │   ├── debug_dc_analysis.py             # DC analysis debugging script
-│   ├── debug_dc_analysis_w400.py        # DC analysis with W=400 variant
-│   ├── plot_vout_comparison.py          # Output voltage comparison visualization
 │   └── plot_vout_model_comparison.py    # Model output comparison plotting
 │
 ├── gdata/                 # Graph Data Generation
@@ -36,7 +34,6 @@ saratoga/
 ### DC Module (`dc/`)
 Handles DC (Direct Current) circuit analysis and simulation:
 - **dc_analysis.py**: Core DC analysis algorithms
-- **plot_vout_*.py**: Visualization tools for output voltage analysis
 - **config_*.yaml**: Configuration files for different analysis scenarios
 
 ### Graph Data Module (`gdata/`)
