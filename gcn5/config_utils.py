@@ -45,7 +45,7 @@ def resolve_data_root(config: dict) -> Tuple[Path, str, str]:
         data_root = <data_root>/<timestamp>/<device>/<gnn_data_subdir>
     """
     data_cfg = config.get("data", {})
-    base = Path(config.get("paths", {}).get("data_root", "/home/hu/saratoga/gdata"))
+    base = Path(config.get("paths", {}).get("data_root", "/home/hu/Diana-Sim/gdata"))
 
     timestamp = data_cfg.get("timestamp", "latest")
     if timestamp == "latest":
@@ -62,7 +62,7 @@ def resolve_data_root(config: dict) -> Tuple[Path, str, str]:
 
 
 def resolve_output_dir(config: dict) -> Path:
-    return Path(config.get("paths", {}).get("output_dir", "/home/hu/saratoga/gcn5"))
+    return Path(config.get("paths", {}).get("output_dir", "/home/hu/Diana-Sim/gcn5"))
 
 
 def copy_config_snapshot(config_path: Path, output_dir: Path, filename: str) -> Path:

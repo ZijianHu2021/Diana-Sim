@@ -1,0 +1,48 @@
+# 可视化配置文件：VOUT模型对比
+# 用于 plot_vout_model_comparison.py 的参数配置
+# Usage: python dc/plot_vout_model_comparison.py --config plot_config.yaml
+
+# ============================================================================
+# 数据文件路径配置
+# ============================================================================
+
+data:
+  # 无DNN直接DC分析的JSON文件路径（必需）
+  json_no_dnn: /home/hu/Diana-Sim/dc/logs/20260206_064844/nmos/newton_analysis/newton_dc_nmos_20260206_064850.json
+  
+  # W400训练模型的JSON文件路径（可选，为null时跳过）
+  json_w400: null
+  
+  # W800训练模型的JSON文件路径（必需）
+  json_w800: /home/hu/Diana-Sim/dc/logs/20260206_065742/nmos/newton_analysis/newton_dc_nmos_20260206_065748.json
+
+# ============================================================================
+# 输出配置
+# ============================================================================
+
+output:
+  # 静态对比图的输出路径
+  output_png: /home/hu/Diana-Sim/dc/vout_model_comparison.png
+  
+  # 动画帧工作目录
+  frames_dir: /home/hu/Diana-Sim/dc/gif_model_cmp
+  
+  # GIF动画输出路径
+  gif_path: /home/hu/Diana-Sim/dc/vout_model_comparison.gif
+
+# ============================================================================
+# 可视化参数配置
+# ============================================================================
+
+visualization:
+  # 动画帧率（fps）
+  fps: 8
+  
+  # 图像分辨率 (dpi)
+  dpi: 300
+  
+  # 生成GIF动画（关闭可只生成静态图）
+  generate_gif: true
+  
+  # 生成静态对比图
+  generate_static: true

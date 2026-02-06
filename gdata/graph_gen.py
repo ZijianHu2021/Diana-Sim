@@ -1,27 +1,282 @@
 #!/usr/bin/env python3
 """
-从 /home/hu/saratoga/dc/logs 按时间戳提取Newton数据，
+从 /home/hu/Diana-Sim/dc/logs 按时间戳提取Newton数据，
 构建图、生成可视化、并保存为GNN训练用.npy数据。
 
-输出全部写到 /home/hu/saratoga/gdata 下，并按时间戳分目录。
+输出全部写到 /home/hu/Diana-Sim/gdata 下，并按时间戳分目录。
 """
 
 import argparse
 import json
 import re
 from pathlib import Path
-import sys
 from typing import Dict, List, Tuple
 
 import numpy as np
 
-# 允许从 /home/hu/saratoga/graph 目录导入
-GRAPH_DIR = Path("/home/hu/saratoga/graph")
-sys.path.insert(0, str(GRAPH_DIR))
+try:
+    import matplotlib.pyplot as plt
+except Exception:  # pragma: no cover - optional dependency
+    plt = None
 
-from graph_builder import JacobianGraphBuilder
-from graph_visualizer import CircuitGraphVisualizer
-from gnn_data_preparation import GNNDataset
+
+def infer_node_type(node_name: str) -> int:
+    name = node_name.upper()
+    if name.startswith("VSRC_"):
+        return 0
+    if name in {"VDD", "VSS"}:
+        return 1
+    if name.startswith("INTERNAL_"):
+        return 2
+    if "VIN" in name:
+        return 3
+    if "VOUT" in name:
+        return 4
+    return 5
+
+
+class GraphData:
+    def __init__(
+        self,
+        jacobian: np.ndarray,
+        voltages: np.ndarray,
+        residual: np.ndarray,
+        node_names: List[str],
+        iteration: int,
+        source_factor: float,
+        jacobian_condition_number: float | None,
+    ):
+        self.jacobian = jacobian
+        self.voltages = voltages
+        self.residual = residual
+        self.node_names = node_names
+        self.node_types = [infer_node_type(name) for name in node_names]
+        self.node_attrs = {
+            i: {"name": name, "node_type": self.node_types[i]}
+            for i, name in enumerate(node_names)
+        }
+        self.graph = {
+            "source_factor": source_factor,
+            "iteration": iteration,
+            "jacobian_condition_number": jacobian_condition_number,
+        }
+        self.edge_index, self.edge_attr = self._build_edges(jacobian)
+
+    @staticmethod
+    def _build_edges(jacobian: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        rows, cols = np.nonzero(jacobian)
+        order = np.lexsort((rows, cols))
+        rows = rows[order]
+        cols = cols[order]
+        edge_index = np.vstack([rows, cols]).astype(np.int64)
+        edge_attr = jacobian[rows, cols].astype(np.float32).reshape(-1, 1)
+        return edge_index, edge_attr
+
+    def node_ids(self) -> List[int]:
+        return list(self.node_attrs.keys())
+
+    def edge_list(self) -> List[Tuple[int, int]]:
+        return list(zip(self.edge_index[0], self.edge_index[1]))
+
+
+class JacobianGraphBuilder:
+    def __init__(self, json_path: str):
+        self.json_path = Path(json_path)
+        self.jacobians: List[np.ndarray] = []
+        self.voltages: List[np.ndarray] = []
+        self.residuals: List[np.ndarray] = []
+        self.node_names: List[str] | None = None
+
+    def load_json_and_build_graphs(self) -> List[GraphData]:
+        with open(self.json_path, "r") as f:
+            data = json.load(f)
+
+        graphs: List[GraphData] = []
+        for item in data.get("iterations", []):
+            if item.get("jacobian") is None:
+                continue
+
+            jacobian = np.array(item["jacobian"], dtype=float)
+            voltages = np.array(item["x"], dtype=float)
+            residual = np.array(item["residual"], dtype=float)
+            node_names = item["node_names"]
+
+            self.jacobians.append(jacobian)
+            self.voltages.append(voltages)
+            self.residuals.append(residual)
+            self.node_names = node_names
+
+            graphs.append(
+                GraphData(
+                    jacobian=jacobian,
+                    voltages=voltages,
+                    residual=residual,
+                    node_names=node_names,
+                    iteration=item["iteration"],
+                    source_factor=item["source_factor"],
+                    jacobian_condition_number=item.get("jacobian_condition_number"),
+                )
+            )
+
+        return graphs
+
+
+class CircuitGraphVisualizer:
+    def __init__(self):
+        self.available = plt is not None
+
+    def _plot_graph(self, graph: GraphData, ax, title: str | None = None):
+        if not self.available:
+            return
+
+        node_ids = graph.node_ids()
+        count = len(node_ids)
+        angles = np.linspace(0, 2 * np.pi, count, endpoint=False)
+        positions = {
+            node_id: (np.cos(angle), np.sin(angle))
+            for node_id, angle in zip(node_ids, angles)
+        }
+
+        color_map = {
+            0: "#1f77b4",
+            1: "#ff7f0e",
+            2: "#2ca02c",
+            3: "#d62728",
+            4: "#9467bd",
+            5: "#8c564b",
+        }
+
+        for src, dst in graph.edge_list():
+            x0, y0 = positions[src]
+            x1, y1 = positions[dst]
+            ax.plot([x0, x1], [y0, y1], color="#888888", linewidth=0.8, alpha=0.7)
+
+        for node_id in node_ids:
+            x, y = positions[node_id]
+            node_type = graph.node_attrs[node_id]["node_type"]
+            ax.scatter(x, y, s=150, color=color_map.get(node_type, "#333333"))
+            ax.text(x, y, graph.node_attrs[node_id]["name"], fontsize=7, ha="center", va="center")
+
+        if title:
+            ax.set_title(title, fontsize=10)
+        ax.set_axis_off()
+
+    def visualize_graph(
+        self,
+        graph: GraphData,
+        layout: str = "spring",
+        show_edge_labels: bool = False,
+        save_path: str | None = None,
+    ):
+        if not self.available:
+            print("⚠️  matplotlib未安装，跳过可视化")
+            return
+
+        fig, ax = plt.subplots(figsize=(6, 5))
+        title = f"Iter {graph.graph['iteration']} | SF {graph.graph['source_factor']:.3f}"
+        self._plot_graph(graph, ax, title=title)
+        fig.tight_layout()
+        if save_path:
+            fig.savefig(save_path, dpi=160)
+        plt.close(fig)
+
+    def visualize_comparison(self, graphs: List[GraphData], iterations: List[int], layout: str, save_dir: str):
+        if not self.available:
+            print("⚠️  matplotlib未安装，跳过对比图")
+            return
+
+        fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+        axes = axes.flatten()
+        for ax, idx in zip(axes, iterations):
+            graph = graphs[idx]
+            title = f"Idx {idx} | Iter {graph.graph['iteration']}"
+            self._plot_graph(graph, ax, title=title)
+        fig.tight_layout()
+        fig.savefig(Path(save_dir) / "comparison_4iterations.png", dpi=160)
+        plt.close(fig)
+
+    def visualize_node_evolution(self, graphs: List[GraphData], node_id: int, save_dir: str):
+        if not self.available:
+            print("⚠️  matplotlib未安装，跳过节点演化图")
+            return
+
+        values = [graph.voltages[node_id] for graph in graphs]
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.plot(values, linewidth=1.2)
+        ax.set_xlabel("Iteration index")
+        ax.set_ylabel("Voltage (V)")
+        ax.set_title(f"Node {node_id} evolution")
+        fig.tight_layout()
+        fig.savefig(Path(save_dir) / f"node_{node_id}_evolution.png", dpi=160)
+        plt.close(fig)
+
+
+class GNNDataset:
+    def __init__(self, graphs: List[GraphData]):
+        self.graphs = graphs
+
+    def get_statistics(self, labels: np.ndarray | None = None) -> Dict:
+        num_iterations = len(self.graphs)
+        num_nodes = len(self.graphs[0].node_ids()) if self.graphs else 0
+        edge_counts = [len(graph.edge_list()) for graph in self.graphs]
+        avg_edges = float(np.mean(edge_counts)) if edge_counts else 0.0
+
+        node_type_counts: Dict[int, int] = {}
+        residual_values: List[float] = []
+        for graph in self.graphs:
+            residual_values.extend(graph.residual.tolist())
+            for node_type in graph.node_types:
+                node_type_counts[node_type] = node_type_counts.get(node_type, 0) + 1
+
+        stats = {
+            "num_iterations": num_iterations,
+            "num_nodes": num_nodes,
+            "node_feature_dim": 3,
+            "edge_feature_dim": 1,
+            "avg_edges_per_graph": avg_edges,
+            "node_type_distribution": {str(k): v for k, v in sorted(node_type_counts.items())},
+            "residual_range": [float(min(residual_values)), float(max(residual_values))] if residual_values else [0.0, 0.0],
+        }
+
+        if labels is not None and labels.size:
+            stats["prediction_target_range"] = [float(labels.min()), float(labels.max())]
+
+        return stats
+
+    def _train_val_split(self, num_iterations: int, seed: int = 123) -> Dict:
+        indices = np.arange(num_iterations)
+        rng = np.random.default_rng(seed)
+        rng.shuffle(indices)
+        split_point = int(num_iterations * 0.8)
+        train_indices = np.sort(indices[:split_point]).tolist()
+        val_indices = np.sort(indices[split_point:]).tolist()
+        return {
+            "train_indices": train_indices,
+            "val_indices": val_indices,
+            "train_size": len(train_indices),
+            "val_size": len(val_indices),
+        }
+
+    def save_numpy(self, numpy_dir: str, split_path: Path | None = None):
+        numpy_dir = Path(numpy_dir)
+        numpy_dir.mkdir(parents=True, exist_ok=True)
+
+        for idx, graph in enumerate(self.graphs):
+            iter_dir = numpy_dir / f"iteration_{idx}"
+            iter_dir.mkdir(parents=True, exist_ok=True)
+
+            node_features = np.column_stack([graph.voltages, graph.residual, graph.node_types]).astype(float)
+            adjacency = graph.jacobian.T.astype(float)
+
+            np.save(iter_dir / "node_features.npy", node_features)
+            np.save(iter_dir / "edge_index.npy", graph.edge_index)
+            np.save(iter_dir / "edge_attr.npy", graph.edge_attr)
+            np.save(iter_dir / "adjacency.npy", adjacency)
+
+        if split_path is not None:
+            split = self._train_val_split(len(self.graphs))
+            with open(split_path, "w") as f:
+                json.dump(split, f, indent=2)
 
 
 def print_header(text: str):
@@ -188,7 +443,9 @@ def process_single_json(json_file: Path, output_root: Path, timestamp: str):
         print(f"   - 源因子: {graphs[0].graph['source_factor']:.6f}")
         print(f"   - 节点电压: {builder.voltages[0][:3]}...")
         print(f"   - Jacobian矩阵大小: {builder.jacobians[0].shape}")
-        print(f"   - Jacobian条件数: {graphs[0].graph.get('jacobian_condition_number', 'N/A'):.3e}")
+        cond = graphs[0].graph.get("jacobian_condition_number")
+        cond_str = f"{cond:.3e}" if cond is not None else "N/A"
+        print(f"   - Jacobian条件数: {cond_str}")
 
     # ========== 第2阶段：图构建统计 ==========
     print_header("第2阶段：图构建统计")
@@ -196,13 +453,13 @@ def process_single_json(json_file: Path, output_root: Path, timestamp: str):
 
     if graphs:
         print(f"\n📊 图统计信息:")
-        print(f"   - 每个图的节点数: {len(graphs[0].nodes())}")
-        print(f"   - 第一个图的边数: {len(graphs[0].edges())}")
+        print(f"   - 每个图的节点数: {len(graphs[0].node_ids())}")
+        print(f"   - 第一个图的边数: {len(graphs[0].edge_list())}")
 
         node_types = {}
-        for node in graphs[0].nodes():
-            node_type = graphs[0].nodes[node]["node_type"]
-            node_name = graphs[0].nodes[node]["name"]
+        for node in graphs[0].node_ids():
+            node_type = graphs[0].node_attrs[node]["node_type"]
+            node_name = graphs[0].node_attrs[node]["name"]
             node_types.setdefault(node_type, []).append(node_name)
 
         print(f"\n   节点类型分布:")
@@ -211,8 +468,7 @@ def process_single_json(json_file: Path, output_root: Path, timestamp: str):
             print(f"      - {type_names.get(t_id, 'Unknown')}: {node_types[t_id]}")
 
         print(f"\n   Jacobian矩阵稀疏性分析:")
-        import numpy as np
-        num_nonzero = [len(G.edges()) for G in graphs]
+        num_nonzero = [len(G.edge_list()) for G in graphs]
         avg_nonzero = np.mean(num_nonzero) if num_nonzero else 0
         sparsity = 1 - avg_nonzero / (10 * 10) if graphs else 0
         print(f"      - 平均非零元素数: {avg_nonzero:.1f}")
@@ -269,13 +525,14 @@ def process_single_json(json_file: Path, output_root: Path, timestamp: str):
     print(f"   - 平均边数: {stats['avg_edges_per_graph']:.1f}")
 
     print(f"\n💾 保存数据到 {gnn_output}...")
-    dataset.save_numpy(str(gnn_output / "numpy"))
+    dataset.save_numpy(str(gnn_output / "numpy"), split_path=gnn_output / "train_val_split.json")
 
     # 从iteration_tracking日志提取标签
     print(f"\n🏷️  提取标签 (actual_changes.npy)...")
     tracking_log = find_iteration_log(json_file)
     labels_info = save_labels_from_log(tracking_log, gnn_output)
 
+    stats = dataset.get_statistics(labels_info["actual_changes"])
     stats_file = gnn_output / "dataset_statistics.json"
     with open(stats_file, 'w') as f:
         json.dump(stats, f, indent=2)
@@ -313,11 +570,11 @@ def process_single_json(json_file: Path, output_root: Path, timestamp: str):
 
 def main():
     parser = argparse.ArgumentParser(description="从dc/logs按时间戳提取GNN数据")
-    parser.add_argument("--logs-root", type=str, default="/home/hu/saratoga/dc/logs",
+    parser.add_argument("--logs-root", type=str, default="/home/hu/Diana-Sim/dc/logs",
                         help="dc日志目录")
     parser.add_argument("--timestamp", type=str, default=None,
                         help="指定时间戳目录（如 20260204_053030），不指定则使用最新")
-    parser.add_argument("--output-root", type=str, default="/home/hu/saratoga/gdata",
+    parser.add_argument("--output-root", type=str, default="/home/hu/Diana-Sim/gdata",
                         help="输出目录")
     args = parser.parse_args()
 

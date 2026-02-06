@@ -104,7 +104,7 @@ gnn:
   # Enable using GNN initial guess (默认关闭)
   enable_initial_guess: false
 
-  # Path to GNN initial guess file (相对于saratoga目录)
+  # Path to GNN initial guess file (相对于Diana-Sim目录或绝对路径)
   # Set to null to disable
   initial_guess_file: gcn5d_ew/gnn_initial_guess_20260203_051911.json
   

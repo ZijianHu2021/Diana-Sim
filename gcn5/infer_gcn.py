@@ -160,13 +160,13 @@ def main(data_tag: str = None, training_timestamp: str = None, suffix: str = "",
     """
     
     # Configuration
-    output_dir = resolve_output_dir(config) if config else Path("/home/hu/saratoga/gcn5")
+    output_dir = resolve_output_dir(config) if config else Path("/home/hu/Diana-Sim/gcn5")
     
     # Determine data_root based on metrics_path or data_tag
     # Priority: metrics_path > data_tag > config
     if metrics_path:
         # Extract device and data_timestamp from metrics_path
-        # Format: /home/hu/saratoga/gcn5/logs/<device_data_timestamp>/<training_timestamp>/metrics_*.json
+        # Format: /home/hu/Diana-Sim/gcn5/logs/<device_data_timestamp>/<training_timestamp>/metrics_*.json
         metrics_parent = Path(metrics_path).parent.parent.name  # Get <device_data_timestamp>
         if '_' in metrics_parent:
             parts = metrics_parent.split('_')
@@ -184,10 +184,10 @@ def main(data_tag: str = None, training_timestamp: str = None, suffix: str = "",
         data_timestamp = '_'.join(parts[1:])  # e.g., "20260204_130041"
     else:
         # Fallback to config if both metrics_path and data_tag parsing fail
-        _, data_timestamp, data_device = resolve_data_root(config) if config else (Path("/home/hu/saratoga/graph/gnn_data"), "unknown", "unknown")
+        _, data_timestamp, data_device = resolve_data_root(config) if config else (Path("/home/hu/Diana-Sim/gdata"), "unknown", "unknown")
     
     # Now construct data_root with the correct timestamp
-    data_root = Path("/home/hu/saratoga/gdata") / data_timestamp / data_device / "gnn_data"
+    data_root = Path("/home/hu/Diana-Sim/gdata") / data_timestamp / data_device / "gnn_data"
     
     # If timestamp not provided, auto-detect or ask user
     if data_tag is None or training_timestamp is None:
@@ -645,7 +645,7 @@ if __name__ == "__main__":
 
     # 智能配置加载：优先使用训练时的配置快照
     config_to_load = args.config
-    output_dir = Path("/home/hu/saratoga/gcn5")  # 默认输出目录
+    output_dir = Path("/home/hu/Diana-Sim/gcn5")  # 默认输出目录
     
     # 如果没有指定配置文件，尝试从训练目录加载
     if config_to_load is None:

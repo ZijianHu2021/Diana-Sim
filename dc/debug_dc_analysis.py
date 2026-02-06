@@ -4,7 +4,7 @@ DC Analysis Debug Script - Separated from analog_design
 
 This script performs detailed DC and TRAN analysis with Newton iteration tracking,
 completely separated from the analog_design directory. All logs and outputs are
-saved to /home/hu/saratoga/dc/logs/ instead.
+saved to /home/hu/Diana-Sim/dc/logs/ instead.
 
 Usage:
     python dc/debug_dc_analysis.py [--config config.yaml]
@@ -617,10 +617,10 @@ def main():
     if gnn_cfg.get('enable_initial_guess', False):
         gnn_file = gnn_cfg.get('initial_guess_file')
         if gnn_file:
-            # 处理相对路径（相对于saratoga目录）
+            # 处理相对路径（相对于Diana-Sim工作区目录）
             if not os.path.isabs(gnn_file):
-                saratoga_root = dc_root.parent
-                gnn_file = saratoga_root / gnn_file
+                workspace_root = dc_root.parent
+                gnn_file = workspace_root / gnn_file
             gnn_guess_source = f"YAML config: {gnn_file}"
             gnn_initial_guess = load_gnn_initial_guess(str(gnn_file))
         else:

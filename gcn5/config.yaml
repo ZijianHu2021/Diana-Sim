@@ -3,10 +3,10 @@
 
 paths:
   # 输出目录（模型、日志、指标等）
-  output_dir: /home/hu/saratoga/gcn5
+  output_dir: /home/hu/Diana-Sim/gcn5
 
   # 数据根目录（由 gdata/graph_gen.py 生成）
-  data_root: /home/hu/saratoga/gdata
+  data_root: /home/hu/Diana-Sim/gdata
 
 
 data:

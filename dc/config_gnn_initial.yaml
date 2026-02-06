@@ -104,9 +104,9 @@ gnn:
   # Enable using GNN initial guess (默认关闭)
   enable_initial_guess: true
 
-  # Path to GNN initial guess file (相对于saratoga目录)
+  # Path to GNN initial guess file (相对于Diana-Sim目录)
   # Set to null to disable
-  initial_guess_file: /home/hu/saratoga/gcn5/logs/nmos_20260204_150830/20260204_151013/20260204_235308/gnn_initial_guess_20260204_235308.json
+  initial_guess_file: /home/hu/Diana-Sim/gcn5/logs/nmos_20260206_064912/20260206_065114/20260206_065504/gnn_initial_guess_20260206_065504.json
   
   # Use GNN guess to enable single-step convergence
   # When enabled, overrides source_factors to [1.0]

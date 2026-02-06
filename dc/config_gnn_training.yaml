@@ -109,7 +109,7 @@ gnn:
   # Path to GNN initial guess file 
   # Can be:
   #   - Absolute path: /path/to/gnn_initial_guess_20260203_051911.json
-  #   - Relative to workspace: gcn5d_ew/gnn_initial_guess_20260203_051911.json
+  #   - Relative to Diana-Sim workspace: gcn5d_ew/gnn_initial_guess_20260203_051911.json
   #   - null to disable (使用默认初始值)
   initial_guess_file: gcn5d_ew/gnn_initial_guess_20260203_051911.json
   
