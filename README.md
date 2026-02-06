@@ -34,6 +34,7 @@ saratoga/
 ### DC Module (`dc/`)
 Handles DC (Direct Current) circuit analysis and simulation:
 - **dc_analysis.py**: Core DC analysis algorithms
+- **plot_vout_*.py**: Visualization tools for output voltage analysis
 - **config_*.yaml**: Configuration files for different analysis scenarios
 
 ### Graph Data Module (`gdata/`)

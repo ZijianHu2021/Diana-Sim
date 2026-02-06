@@ -61,7 +61,6 @@ config.local.py
 # ==========================================
 # 忽略所有不需要管理的文件夹
 # ==========================================
-/analog_design/
 /bsim450/
 /graph/
 /gcn5d_ew/
@@ -75,6 +74,24 @@ config.local.py
 /src/
 /tests/
 /bsim4.out
+
+# ==========================================
+# analog_design 文件夹：只保留与dc相关的.py文件
+# ==========================================
+analog_design/**
+!analog_design/
+!analog_design/tests/
+!analog_design/tests/test_python_bsim4.py
+!analog_design/newton_data_collector.py
+!analog_design/python_sim/
+!analog_design/python_sim/src/
+!analog_design/python_sim/src/analog_design/
+!analog_design/python_sim/src/analog_design/__init__.py
+!analog_design/python_sim/src/analog_design/simulator.py
+!analog_design/python_sim/src/analog_design/plotting.py
+!analog_design/python_sim/src/bsim4_circuit_analyzer.py
+!analog_design/python_sim/src/bsim4_python_wrapper.py
+!analog_design/python_sim/src/cal_device_param.py
 
 # ==========================================
 # dc 文件夹：只保留 .py 和 .yaml 文件
